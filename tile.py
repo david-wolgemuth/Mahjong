@@ -1,9 +1,6 @@
 import tkinter as tk
 from random import shuffle
-from PIL import Image, ImageTk
 import os
-import pdb
-
 
 ROW = 0
 COL = 1
@@ -119,13 +116,14 @@ ALL_TILES = {
 }
 
 class Tile:
-    def __init__(self, canvas, left, top, x, y, z):
+    def __init__(self, canvas, left, top, x, y, z, tag):
         self.canvas = canvas
         self.size = TILE_SIZE
         self.ratio = TILE_RATIO
         self.x = x
         self.y = y
         self.plane = self.z = z
+        self.tag = tag
         self.depth = TILE_DEPTH
 
         self.height = 0
@@ -233,39 +231,38 @@ class Tile:
             self.rect,
             fill='linen',
             outline='black',
-            width=1
+            width=1,
+            tag=self.tag
         )
         self.canvas.create_polygon(
             self.shadow_bottom,
             fill='steelblue4',#tan4',
             outline='black',
-            width=1
+            width=1,
+            tag=self.tag
         )
         self.canvas.create_polygon(
             self.shadow_left,
             fill='steelblue2',#bisque2',
             outline='black',
-            width=1
+            width=1,
+            tag=self.tag
         )
 
     def make_shadow(self, *sides):
-        # self.canvas.create_rectangle(
-        #     self.shadow_square,
-        #     fill='gray12', stipple="gray12"
-        #     # stipple='gray12'
-        # )
         for side in sides:
             self.canvas.create_polygon(
                 side,
                 fill='gray30',
                 outline='gray30',
-                width=1
+                width=1,
+                tag=self.tag
             )
 
 
 class FacedTile(Tile):
-    def __init__(self, canvas, left, top, x, y, z, shape, value):
-        Tile.__init__(self, canvas, left, top, x, y, z)
+    def __init__(self, canvas, left, top, x, y, z, shape, value, tag):
+        Tile.__init__(self, canvas, left, top, x, y, z, tag)
         self.shape = shape
         self.value = value
         self.pattern = []
@@ -355,7 +352,8 @@ class FacedTile(Tile):
                     left, top, right, bottom,
                     outline='black',
                     fill='SkyBlue4' if i == 2 else None,
-                    width=1
+                    width=1,
+                    tag=self.tag
                 )
 
     def draw_bamboo(self):
@@ -379,25 +377,31 @@ class FacedTile(Tile):
                 corners,
                 outline='black',
                 fill='olive drab',
-                width=1
+                width=1,
+                tag=self.tag
             )
 
     def draw_character(self):
         self.canvas.create_text(
             self._x(0.9), self._y(0.1),
             text=self.value,
-            font=(None, self.fontsize['S'])
+            font=(None, self.fontsize['S']),
+            tag=self.tag
+
         )
         self.canvas.create_text(
             self._x(0.5), self._y(0.25),
             text=CHARACTERS[self.value][1],
-            font=(None, self.fontsize['M'])
+            font=(None, self.fontsize['M']),
+            tag=self.tag
+
         )
         self.canvas.create_text(
             self._x(0.5), self._y(0.7),
             text=CHARACTERS[self.value][0],
             font=(None, self.fontsize['L']),
-            fill='firebrick4'
+            fill='firebrick4',
+            tag=self.tag
         )
 
     def draw_animal(self):
@@ -412,7 +416,8 @@ class FacedTile(Tile):
                 self._x(x), self._y(y),
                 text=text,
                 font=(font, self.fontsize[size]),
-                fill='black'
+                fill='black',
+                tag=self.tag
             )
 
     def draw_directional(self):
@@ -421,13 +426,15 @@ class FacedTile(Tile):
             self._x(0.5), self._y(0.5),
             text=DIRECTIONALS[self.value],
             font=(None, self.fontsize[fs]),
-            fill='black'
+            fill='black',
+            tag=self.tag
         )
         self.canvas.create_text(
             self._x(0.72), self._y(0.1),
             text=self.value,
             font=(None, self.fontsize['XS']),
-            fill='firebrick4'
+            fill='firebrick4',
+            tag=self.tag
         )
 
     def draw_dragon(self):
@@ -437,7 +444,8 @@ class FacedTile(Tile):
             self._x(0.5), self._y(0.5),
             text=text,
             font=(None, self.fontsize['XL']),
-            fill=color
+            fill=color,
+            tag=self.tag
         )
 
     def draw_season(self):
@@ -448,13 +456,15 @@ class FacedTile(Tile):
             self._x(0.27), self._y(0.17),
             text=char,
             font=(None, self.fontsize['M']),
-            fill=COLORS['R']
+            fill=COLORS['R'],
+            tag=self.tag
         )
         self.canvas.create_text(
             self._x(0.83), self._y(0.17),
             text=num,
             font=(None, self.fontsize['S']),
-            fill=COLORS['B']
+            fill=COLORS['B'],
+            tag=self.tag
         )
         for aspect in flower:
             text = aspect[0]
@@ -466,7 +476,8 @@ class FacedTile(Tile):
                 self._x(x), self._y(y),
                 text=text,
                 font=(None, self.fontsize[size]),
-                fill=color
+                fill=color,
+                tag=self.tag
             )
 
     def make(self):
@@ -479,9 +490,9 @@ class Board:
         self.canvas = canvas
         self.border_x = int
         self.border_y = int
+        self.temp_board = []
+        self.temp_board_specials = {}
         self.board = []
-        self.board_specials = {}
-        self.all_tiles = []
         self.unplaced_tiles = []
         self.set_border()
 
@@ -491,6 +502,7 @@ class Board:
         self.fill_spaces()
         if self.canvas:
             self.place_tiles()
+            self.make_tiles()
 
     def set_border(self):
         x = WINDOW_WIDTH - 15 * TILE_SIZE * TILE_RATIO[0]
@@ -513,8 +525,8 @@ class Board:
                 for x in range(12):
                     row.append([])
                 plane.append(row)
-            self.board.append(plane)
-        self.board_specials = {
+            self.temp_board.append(plane)
+        self.temp_board_specials = {
             'apex': [4, 6.5],
             'left': [0, 0],
             'r1': [0, 13],
@@ -522,7 +534,7 @@ class Board:
         }
 
     def fill_spaces(self):
-        for z, plane in enumerate(self.board):
+        for z, plane in enumerate(self.temp_board):
             for y, row in enumerate(plane):
                 for x, space in enumerate(row):
                     border = TILE_PLANES[z][y]
@@ -530,12 +542,12 @@ class Board:
                         space.extend(self.unplaced_tiles.pop())
                     else:
                         space.append(None)
-        for space in self.board_specials:
-            self.board_specials[space].extend(self.unplaced_tiles.pop())
+        for space in self.temp_board_specials:
+            self.temp_board_specials[space].extend(self.unplaced_tiles.pop())
 
     def place_tiles(self):
         self.place_special('r2', 'r1')
-        for z, plane in enumerate(self.board):
+        for z, plane in enumerate(self.temp_board):
             for y, row in enumerate(plane):
                 for x, tile in enumerate(reversed(row)):
                     if tile[0]:
@@ -544,7 +556,7 @@ class Board:
 
     def place_special(self, *spaces):
         for space in spaces:
-            z, x, shape, value = self.board_specials[space]
+            z, x, shape, value = self.temp_board_specials[space]
             self.place_tile([shape, value], x, 3.5, z)
 
     def place_tile(self, tile, x, y, z):
@@ -554,10 +566,20 @@ class Board:
         y_ = y + self.border_y + tile_height * y
         shape = tile[0]
         value = tile[1]
-        tile = FacedTile(self.canvas, x_, y_, x, y, z, shape, value)
-        tile.make()
-        self.all_tiles.append(tile)
-        self.make_shadow(tile)
+        tag = '%s::%s' % (shape, value)
+        tile = FacedTile(self.canvas, x_, y_, x, y, z, shape, value, tag)
+        self.board.append(tile)
+
+    def make_tiles(self):
+        for z in range(-10, 10):
+            plane = []
+            for tile in self.board:
+                if tile.z == z:
+                    plane.append(tile)
+            plane.sort(key=lambda t: t.x, reverse=True)
+            for tile in plane:
+                tile.make()
+                self.make_shadow(tile)
 
     def make_shadow(self, tile):
         bordering_x = False
@@ -567,7 +589,7 @@ class Board:
         only_bh = False
         sq_top = False
 
-        for tile_2 in self.all_tiles:
+        for tile_2 in self.board:
             if tile_2.z == tile.z:
                 if tile_2.x == tile.x + 1:
                     if tile_2.y == tile.y:
@@ -608,20 +630,86 @@ class GameBoard(Board):
     def __init__(self, canvas):
         Board.__init__(self, canvas)
         self.canvas.bind('<Button 1>', self.get_mouse_click)
+        self.highlighted_tile = None
 
     def get_mouse_click(self, event):
         x = event.x
         y = event.y
         eligible_tiles = []
-        for tile in self.all_tiles:
-            if tile.left < x < tile.right and tile.top < y < tile.bottom:
+        for tile in self.board:
+            d = tile.depth
+            if (
+                        (tile.left < x < tile.right and
+                         tile.top < y < tile.bottom)
+                    or (tile.left < x + d < tile.right and
+                        tile.top < y - d < tile.bottom)
+            ):
                 eligible_tiles.append(tile)
+
         highest = None
         for tile in eligible_tiles:
-            if not highest or tile.plane > highest.plane:
+            if (
+                    not highest or
+                    tile.plane > highest.plane or
+                    (tile.plane == highest.plane and tile.x < highest.x)
+            ):
                 highest = tile
 
-        print('%s::%s' % (highest.shape, highest.value))
+        if highest:
+            self.process_tile_click(tile)
+
+    def process_tile_click(self, tile):
+        blocking_left = False
+        blocking_right = False
+        blocking_top = False
+        x1 = tile.x
+        y1 = tile.y
+        z1 = tile.z
+        for tile_2 in self.board:
+            if tile is tile_2:
+                continue
+            x2 = tile_2.x
+            y2 = tile_2.y
+            z2 = tile_2.z
+            if y2 - 0.5 <= y1 <= y2 + 0.5 and z1 <= z2:
+                if x2 - 0.5 <= x1 <= x2 + 0.5:
+                    blocking_top = True
+                    break
+                if x1 == x2 + 1:
+                    blocking_left = True
+                if x1 == x2 - 1:
+                    blocking_right = True
+        if not (blocking_left and blocking_right) and not blocking_top:
+            self.highlight_tile(tile)
+
+    def highlight_tile(self, tile):
+        if self.highlighted_tile is tile:
+            self.canvas.delete('highlight')
+            self.highlighted_tile = None
+        elif (
+                (self.highlighted_tile and
+                 self.highlighted_tile.shape == tile.shape) and
+                (tile.value == self.highlighted_tile.value or
+                 tile.shape == ANIMAL or
+                 tile.shape == SEASON)
+            ):
+            self.remove_tile(tile)
+            self.remove_tile(self.highlighted_tile)
+        else:
+            self.highlighted_tile = tile
+            self.canvas.delete('highlight')
+            self.canvas.create_rectangle(
+                tile.rect,
+                fill=None,
+                outline='springgreen2',
+                width=4,
+                tag='highlight'
+            )
+
+    def remove_tile(self, tile):
+        self.board.remove(tile)
+        self.canvas.delete('all')
+        self.make_tiles()
 
 
 class MainApp(tk.Frame):
