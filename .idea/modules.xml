@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/tiles.iml" filepath="$PROJECT_DIR$/.idea/tiles.iml" />
+      <module fileurl="file://$USER_HOME$/Documents/CS/Python/tkinter/mahjong/.idea/Mahjong.iml" filepath="$USER_HOME$/Documents/CS/Python/tkinter/mahjong/.idea/Mahjong.iml" />
     </modules>
   </component>
 </project>
