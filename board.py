@@ -1,4 +1,5 @@
 from tile import *
+import random
 
 class Board:
     def __init__(self, canvas):
@@ -8,15 +9,24 @@ class Board:
         self.temp_board = []
         self.temp_board_specials = {}
         self.board = []
+        self.cheat_tiles = []
+        self.removed_tiles = []
         self.unplaced_tiles = []
         self.set_border()
+        self.cheats = False
+        self.easy = False
 
     def make(self):
         self.randomize_tiles()
         self.make_planes()
-        self.fill_spaces()
+        if self.easy:
+            self.fill_spaces_easy()
+        else:
+            self.fill_spaces()
         if self.canvas:
             self.place_tiles()
+            if self.cheats:
+                self.place_cheats()
             self.make_tiles()
 
     def set_border(self):
@@ -30,7 +40,7 @@ class Board:
             for value in ALL_TILES[tile_type][0]:
                 for i in range(ALL_TILES[tile_type][1]):
                     self.unplaced_tiles.append((tile_type, value))
-        shuffle(self.unplaced_tiles)
+        random.shuffle(self.unplaced_tiles)
 
     def make_planes(self):
         for z in range(4):
@@ -74,23 +84,37 @@ class Board:
             z, x, shape, value = self.temp_board_specials[space]
             self.place_tile([shape, value], x, 3.5, z)
 
+    def place_cheats(self):
+        for i in range(6):
+            x = 14
+            y = 6
+            z = i
+            self.place_tile([CHEAT, 'Undo'], x, y, z)
+
     def place_tile(self, tile, x, y, z):
         tile_width = TILE_SIZE * TILE_RATIO[0]
         tile_height = TILE_SIZE * TILE_RATIO[1]
-        x_ = x + self.border_x + tile_width * x
-        y_ = y + self.border_y + tile_height * y
+        x_ = self.border_x + tile_width * x
+        y_ = self.border_y + tile_height * y
         shape = tile[0]
         value = tile[1]
         tag = '%s::%s' % (shape, value)
-        tile = FacedTile(self.canvas, x_, y_, x, y, z, shape, value, tag)
-        self.board.append(tile)
+        if CHEAT in tag:
+            tile = Button(self.canvas, x_, y_, value, x, y, z, TEXT,
+                          depth=(TILE_DEPTH/2))
+            self.cheat_tiles.append(tile)
+        else:
+            tile = FacedTile(self.canvas, x_, y_, x, y, z, shape, value, tag)
+            self.board.append(tile)
 
     def make_tiles(self):
         for z in range(-10, 10):
             plane = []
-            for tile in self.board:
-                if tile.z == z:
-                    plane.append(tile)
+            for board in self.board, self.cheat_tiles:
+                for tile in board:
+                    if tile.z == z:
+                        plane.append(tile)
+            plane.sort(key=lambda t: t.y)
             plane.sort(key=lambda t: t.x, reverse=True)
             for tile in plane:
                 tile.make()
@@ -103,7 +127,6 @@ class Board:
         only_th = False
         only_bh = False
         sq_top = False
-
         for tile_2 in self.board:
             if tile_2.z == tile.z:
                 if tile_2.x == tile.x + 1:
@@ -119,7 +142,6 @@ class Board:
                         bordering_y = True
                     elif tile_2.x == tile.x + 1:
                         up_over = True
-
         if not bordering_x:
             if only_bh and only_th:
                 pass
@@ -131,7 +153,6 @@ class Board:
                 tile.make_shadow(tile.shadow_right_squared)
             else:
                 tile.make_shadow(tile.shadow_right)
-
         if not bordering_y:
             if up_over:
                 tile.make_shadow(tile.shadow_top_squared)
@@ -147,25 +168,30 @@ class GameBoard(Board):
         self.canvas.bind('<Button 1>', self.get_mouse_click)
         self.highlighted_tile = None
 
+    def update(self):
+        self.canvas.delete('all')
+        self.make_tiles()
+
     def get_mouse_click(self, event):
         x = event.x
         y = event.y
         eligible_tiles = []
-        for tile in self.board:
+        board = self.board + self.cheat_tiles
+        for tile in board:
             d = tile.depth
             if (
-                        (tile.left < x < tile.right and
-                                     tile.top < y < tile.bottom)
-                    or (tile.left < x + d < tile.right and
-                                    tile.top < y - d < tile.bottom)
+                (tile.left < x < tile.right and
+                 tile.top < y < tile.bottom) or
+                (tile.left < x + d < tile.right and
+                 tile.top < y - d < tile.bottom)
             ):
                 eligible_tiles.append(tile)
         highest = None
         for tile in eligible_tiles:
             if (
-                            not highest or
-                                tile.plane > highest.plane or
-                        (tile.plane == highest.plane and tile.x < highest.x)
+                not highest or
+                tile.plane > highest.plane or
+                (tile.plane == highest.plane and tile.x < highest.x)
             ):
                 highest = tile
 
@@ -197,28 +223,26 @@ class GameBoard(Board):
             if tile.click:
                 self.select_tile(tile)
         elif (not (blocking_left and blocking_right) and
-                  not blocking_top):
+              not blocking_top):
             self.select_tile(tile)
 
     def select_tile(self, tile):
         self.highlight_tile(tile)
 
     def highlight_tile(self, tile):
-        print(tile.value)
         if hasattr(tile, 'highlight_partner') and tile.highlight_partner:
             for i in tile.highlight_partner:
-                print('partner', i.value)
-            tile.highlight_partner[0].toggle_highlight()
+                tile.highlight_partner[0].toggle_highlight()
             tile.toggle_highlight()
+            self.setup_preferences(tile)
         elif self.highlighted_tile is tile:
             self.highlighted_tile = None
             tile.toggle_highlight()
         elif (
-                    (self.highlighted_tile and
-                             self.highlighted_tile.shape == tile.shape) and
-                    (tile.value == self.highlighted_tile.value or
-                             tile.shape == ANIMAL or
-                             tile.shape == SEASON)
+            (self.highlighted_tile and
+             self.highlighted_tile.shape == tile.shape) and
+            (tile.value == self.highlighted_tile.value or
+             tile.shape == ANIMAL or tile.shape == SEASON)
         ):
             self.remove_tile(tile)
             self.remove_tile(self.highlighted_tile)
@@ -229,13 +253,29 @@ class GameBoard(Board):
             tile.toggle_highlight()
         self.update()
 
-    def update(self):
-        self.canvas.delete('all')
-        self.make_tiles()
-
     def remove_tile(self, tile, group=None):
         if group:
             group.remove(tile)
         else:
             self.board.remove(tile)
+            self.removed_tiles.append(tile)
         self.update()
+
+    def setup_preferences(self, tile):
+        if tile.tag == CHEAT:
+            if tile.value == 'On':
+                self.cheats = True
+            elif tile.value == 'Off':
+                self.cheats = False
+        elif tile.tag == DIFFICULTY:
+            if tile.value == 'Easy':
+                self.easy = True
+            elif tile.value == 'Regular':
+                self.easy = False
+
+    def undo(self, undo_tile):
+        if self.removed_tiles:
+            self.board.append(self.removed_tiles.pop())
+            self.board.append(self.removed_tiles.pop())
+            self.cheat_tiles.remove(undo_tile)
+            self.update()

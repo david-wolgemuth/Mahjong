@@ -52,7 +52,6 @@ class Tile:
             (self.left, top), (self.right, top),
             (right, bottom), (left, bottom)
         ]
-
         # Left Shadow
         top = self.top + length
         bottom = self.bottom + length
@@ -62,7 +61,6 @@ class Tile:
             (left, top), (right, self.top),
             (right, self.bottom), (left, bottom)
         ]
-
         # Top Shadow
         top = self.top - length
         bottom = self.top
@@ -72,13 +70,11 @@ class Tile:
             (self.left, bottom), (left, top),
             (right, top), (self.right, bottom)
         ]
-
         # Squared Top Shadow
         self.shadow_top_squared = [
             (self.left, bottom), (left, top),
             (self.right, top), (self.right, bottom)
         ]
-
         # Right Shadow
         top = self.top - length
         bottom = self.bottom - length
@@ -88,13 +84,11 @@ class Tile:
             (left, self.top), (right, top),
             (right, bottom), (left, self.bottom)
         ]
-
         # Squared Right Shadow
         self.shadow_right_squared = [
             (left, self.top), (right, self.top),
             (right, bottom), (left, self.bottom)
         ]
-
         # Right Top Half Shadow
         left = self.right
         top = self.top - length
@@ -104,7 +98,6 @@ class Tile:
             (left, self.top), (right, top),
             (right, bottom), (left, bottom)
         ]
-
         # Right Bottom Half Shadow
         left = self.right
         top = self.bottom - (self.height / 2)

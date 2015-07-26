@@ -1,5 +1,10 @@
+#! /usr/bin/env python
+
 from board import *
-import tkinter as tk
+try:
+    import tkinter as tk
+except ImportError:
+    import Tkinter as tk
 import os
 
 
@@ -17,37 +22,57 @@ class Game(GameBoard):
         play = Button(self.canvas, left, top, value=text,
                       tag=text, size=size, ratio=ratio, y=4)
 
-        top -= play.height * 3
-        tag = 'Difficulty'
-        diff = Button(self.canvas, left, top, value=tag, y=2,
-                      size=size, ratio=ratio, click=False)
-        left += diff.width
-        text = 'Easy', 'Regular'
-        ratio = (1, 1)
-        easy = Button(self.canvas, left, top, tag=tag,
-                      value=text[0], size=size, ratio=ratio, x=1, y=2)
-        left += easy.width
-        reg = Button(self.canvas, left, top, font=(None, 16),
-                     tag=tag, value=text[1], size=size, ratio=ratio, x=2, y=2)
-        reg.highlight_partner.append(easy)
-        reg.toggle_highlight()
-        easy.highlight_partner.append(reg)
+        left += play.width * 3
+        mahjong = Button(self.canvas, left, top, value='Mahjong',
+                         font=('Apple Chancery', 48), size=size*2,
+                         ratio=ratio, y=6)
+        left -= play.width * 3
+        # top -= play.height * 3
+        # tag = DIFFICULTY
+        # diff = Button(self.canvas, left, top, value=tag, y=2,
+        #               size=size, ratio=ratio, click=False)
+        # left += diff.width
+        # text = 'Easy', 'Regular'
+        # ratio = (1, 1)
+        # easy = Button(self.canvas, left, top, tag=tag,
+        #               value=text[0], size=size, ratio=ratio, x=1, y=2)
+        # left += easy.width
+        # reg = Button(self.canvas, left, top, font=(None, 16),
+        #              tag=tag, value=text[1], size=size, ratio=ratio, x=2, y=2)
+        # reg.highlight_partner.append(easy)
+        # reg.toggle_highlight()
+        # easy.highlight_partner.append(reg)
 
         top -= play.height * 3
-        left -= (diff.width + easy.width)
-        tag = 'cheats'
+        # left -= (diff.width + easy.width)
+        tag = CHEAT
         cheats = Button(self.canvas, left, top, value=tag, tag=tag,
                         ratio=(2, 1), size=size, click=False)
         left += cheats.width
-        on = Button(self.canvas, left, top, value='On', tag=tag, ratio=ratio,
-                    size=size, x=1)
+        on = Button(self.canvas, left, top, value='On', tag=tag,
+                                ratio=ratio, size=size, x=1)
         left += on.width
         off = Button(self.canvas, left, top, value='Off', tag=tag, ratio=ratio,
                      size=size, x=2)
         off.highlight_partner.append(on)
         on.highlight_partner.append(off)
         off.toggle_highlight()
-        self.board.extend([play, diff, easy, reg, cheats, on, off])
+
+        left -= cheats.width * 2
+        top -= play.height * 4
+
+        created_by = Button(self.canvas, left, top, value=' Created \n   By:',
+                            y=-2, size=size/2)
+        left += created_by.width * 1.5
+        david = Button(self.canvas, left, top, value='David Wolgemuth',
+                       ratio=(2, 0.5), size=size*1.7, y=-2, x=2)
+
+        self.board.extend([play,
+                           mahjong,
+                           # diff, easy, reg,
+                           cheats, on, off,
+                           created_by, david
+                           ])
         self.update()
 
     def select_tile(self, tile):
@@ -55,6 +80,8 @@ class Game(GameBoard):
             self.board = []
             self.make()
             self.update()
+        elif tile.value == 'Undo':
+            self.undo(tile)
         else:
             self.highlight_tile(tile)
 

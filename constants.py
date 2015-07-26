@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 ROW = 0
 COL = 1
 CIRCLE = 'circle'
@@ -8,6 +9,8 @@ DIRECTIONAL = 'directional'
 DRAGON = 'dragon'
 SEASON = 'season'
 TEXT = 'text'
+DIFFICULTY = 'difficulty'
+CHEAT = 'Cheat'
 AVALANCHE = 'avalanche'
 TILE_SIZE = 20
 TILE_RATIO = (3, 4)
@@ -31,7 +34,6 @@ TILE_PLANES = [
     [None, None, 4, 4],
     [None, None, None, 5]
 ]
-
 for p in TILE_PLANES:
     p += reversed(p)
 
@@ -106,7 +108,6 @@ SEASONS = {
         [u'ݸ', 'M', 'R', (0.3, 0.45)]
     ],
 }
-
 ALL_TILES = {
     CHAR: [CHARACTERS.keys(), 4],
     BAMBOO: [BAMBOOS, 4],
